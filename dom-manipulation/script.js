@@ -1,6 +1,9 @@
 // Quotes array - Initialized empty
 const quotes = [];
 
+// Simulated server endpoint (replace with actual API endpoint if needed)
+const serverUrl = "https://jsonplaceholder.typicode.com/posts"; // Example endpoint
+
 // Function to load quotes from local storage
 function loadQuotes() {
   const storedQuotes = localStorage.getItem("quotes");
@@ -139,11 +142,75 @@ function importFromJsonFile(event) {
   fileReader.readAsText(event.target.files[0]);
 }
 
+// Function to fetch quotes from the server
+async function fetchQuotesFromServer() {
+  try {
+    const response = await fetch(serverUrl);
+    if (!response.ok) throw new Error("Network response was not ok");
+
+    const data = await response.json();
+    // Map the response to your quote structure
+    const newQuotes = data.map((item) => ({
+      text: item.title, // Use title as quote text for simplicity
+      category: "general", // Use a default category
+    }));
+
+    // Sync new quotes with local storage
+    syncQuotesWithLocal(newQuotes);
+  } catch (error) {
+    console.error("Failed to fetch quotes from server:", error);
+  }
+}
+
+// Function to sync quotes with local storage
+function syncQuotesWithLocal(newQuotes) {
+  let hasConflict = false;
+
+  newQuotes.forEach((newQuote) => {
+    const exists = quotes.find((quote) => quote.text === newQuote.text);
+    if (!exists) {
+      quotes.push(newQuote);
+    } else {
+      // Conflict resolution: simply keep the server's data
+      hasConflict = true;
+      const index = quotes.indexOf(exists);
+      quotes[index] = newQuote;
+    }
+  });
+
+  saveQuotes(); // Save the updated quotes to local storage
+  filterQuotes(); // Refresh the displayed quotes
+
+  if (hasConflict) {
+    showNotification("Quotes were updated from the server.");
+  }
+}
+
+// Function to start periodic fetching of quotes
+function startQuoteSync() {
+  fetchQuotesFromServer(); // Initial fetch
+  setInterval(fetchQuotesFromServer, 30000); // Fetch every 30 seconds
+}
+
+// Function to show notification
+function showNotification(message) {
+  const notification = document.getElementById("notification");
+  notification.textContent = message;
+  notification.style.display = "block";
+
+  setTimeout(() => {
+    notification.style.display = "none";
+  }, 5000); // Hide after 5 seconds
+}
+
 // Load existing quotes from local storage on page load
 loadQuotes();
 
 // Populate categories and display quotes on page load
 populateCategories();
+
+// Start syncing quotes with the server
+startQuoteSync();
 
 // Add event listeners for buttons
 document.getElementById("newQuote").addEventListener("click", showRandomQuote);
