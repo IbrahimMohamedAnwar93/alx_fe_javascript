@@ -140,38 +140,6 @@ async function postQuoteToServer(quote) {
   }
 }
 
-// Function to export quotes as JSON file
-function exportQuotesToJson() {
-  const dataStr = JSON.stringify(quotes);
-  const blob = new Blob([dataStr], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "quotes.json";
-  a.click();
-
-  URL.revokeObjectURL(url); // Clean up
-}
-
-// Function to import quotes from a JSON file
-function importFromJsonFile(event) {
-  const fileReader = new FileReader();
-  fileReader.onload = function (event) {
-    const importedQuotes = JSON.parse(event.target.result);
-    if (Array.isArray(importedQuotes)) {
-      quotes.push(...importedQuotes);
-      saveQuotes(); // Save imported quotes to local storage
-      populateCategories(); // Update the category dropdown with new categories
-      alert("Quotes imported successfully!");
-      filterQuotes(); // Refresh the displayed quotes after importing
-    } else {
-      alert("Invalid file format!");
-    }
-  };
-  fileReader.readAsText(event.target.files[0]);
-}
-
 // Function to fetch quotes from the server
 async function fetchQuotesFromServer() {
   try {
@@ -212,7 +180,7 @@ function syncQuotesWithLocal(newQuotes) {
   filterQuotes(); // Refresh the displayed quotes
 
   if (hasConflict) {
-    showNotification("Quotes were updated from the server.");
+    showNotification("Quotes were synced with server!"); // Updated notification message
   }
 }
 
