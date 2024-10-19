@@ -172,7 +172,7 @@ function syncQuotesWithLocal(newQuotes) {
       // Conflict resolution: simply keep the server's data
       hasConflict = true;
       const index = quotes.indexOf(exists);
-      quotes[index] = newQuote;
+      quotes[index] = newQuote; // Update with server data
     }
   });
 
@@ -180,7 +180,7 @@ function syncQuotesWithLocal(newQuotes) {
   filterQuotes(); // Refresh the displayed quotes
 
   if (hasConflict) {
-    showNotification("Quotes were synced with server!"); // Updated notification message
+    showNotification("Quotes synced with server!"); // Notify user about syncing
   }
 }
 
