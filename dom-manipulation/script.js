@@ -78,8 +78,7 @@ function addQuote() {
     // Add new quote to the array
     quotes.push({ text: newQuoteText, category: newQuoteCategory });
 
-    // Update local storage and the category dropdown
-    saveQuotes();
+    // Update the category dropdown
     updateCategoryDropdown();
 
     // Display success message
@@ -192,28 +191,10 @@ function createCategoryDropdown() {
   const categorySelect = document.createElement("select");
   categorySelect.id = "categorySelect";
   categorySelect.addEventListener("change", filterQuotesByCategory);
-  document.body.insertBefore(
-    categorySelect,
-    document.getElementById("quoteDisplay")
-  );
-
-  updateCategoryDropdown();
+  document.body.appendChild(categorySelect);
 }
 
-// Load quotes from local storage
-function loadQuotes() {
-  const storedQuotes = localStorage.getItem("quotes");
-  if (storedQuotes) {
-    quotes.push(...JSON.parse(storedQuotes));
-  }
-}
-
-// Save quotes to local storage
-function saveQuotes() {
-  localStorage.setItem("quotes", JSON.stringify(quotes));
-}
-
-// Function to export quotes to a JSON file
+// Function to export quotes as a JSON file
 function exportQuotes() {
   const blob = new Blob([JSON.stringify(quotes, null, 2)], {
     type: "application/json",
@@ -224,67 +205,40 @@ function exportQuotes() {
   a.href = url;
   a.download = "quotes.json";
   a.click();
+
+  // Clean up the URL object
   URL.revokeObjectURL(url);
 }
 
 // Function to import quotes from a JSON file
 function importFromJsonFile(event) {
-  const fileReader = new FileReader();
-  fileReader.onload = function (event) {
-    try {
-      const importedQuotes = JSON.parse(event.target.result);
-      // Check for duplicates
-      const existingTexts = new Set(quotes.map((quote) => quote.text));
-      const uniqueImportedQuotes = importedQuotes.filter(
-        (quote) => !existingTexts.has(quote.text)
-      );
-
-      if (uniqueImportedQuotes.length > 0) {
-        quotes.push(...uniqueImportedQuotes);
-        saveQuotes();
-        updateCategoryDropdown(); // Update category dropdown after importing
-        alert("Quotes imported successfully!");
-      } else {
-        alert("No new quotes to import.");
+  const file = event.target.files[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const importedQuotes = JSON.parse(e.target.result);
+        if (Array.isArray(importedQuotes)) {
+          // Merge new quotes with existing quotes
+          quotes.push(...importedQuotes);
+          alert("Quotes imported successfully!");
+          // Optionally: refresh or display a new quote
+          showRandomQuote();
+        } else {
+          alert("Imported data is not a valid array.");
+        }
+      } catch (error) {
+        alert("Error reading file: " + error.message);
       }
-    } catch (error) {
-      alert("Failed to import quotes. Please ensure the file is a valid JSON.");
-    }
-  };
-  fileReader.readAsText(event.target.files[0]);
+    };
+    reader.readAsText(file);
+  }
 }
 
-// Function to initialize the application
-function initializeApp() {
-  loadQuotes(); // Load existing quotes from local storage
-  createAddQuoteForm();
-  createCategoryDropdown();
-  showRandomQuote();
-}
-
-// Adding button for exporting quotes
-function createExportButton() {
-  const exportButton = document.createElement("button");
-  exportButton.textContent = "Export Quotes";
-  exportButton.onclick = exportQuotes;
-  document.body.appendChild(exportButton);
-}
-
-// Adding input for importing quotes
-function createImportInput() {
-  const importInput = document.createElement("input");
-  importInput.type = "file";
-  importInput.id = "importFile";
-  importInput.accept = ".json";
-  importInput.onchange = importFromJsonFile;
-
-  const importLabel = document.createElement("label");
-  importLabel.textContent = "Import Quotes (JSON): ";
-  importLabel.appendChild(importInput);
-  document.body.appendChild(importLabel);
-}
-
-// Call the functions to set everything up
-initializeApp();
-createExportButton();
-createImportInput();
+// Event listeners
+document.getElementById("newQuote").addEventListener("click", showRandomQuote);
+document.getElementById("exportQuotes").addEventListener("click", exportQuotes);
+createAddQuoteForm();
+createCategoryDropdown();
+updateCategoryDropdown();
+showRandomQuote();
