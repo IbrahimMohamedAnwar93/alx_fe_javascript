@@ -35,6 +35,10 @@ h1 {
   background-color: #2980b9;
 }
 
+#exportContainer {
+  margin-top: 20px;
+}
+
 .quote-form {
   margin: 20px auto;
   max-width: 500px;
