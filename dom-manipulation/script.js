@@ -32,10 +32,7 @@ const quotes = [
     text: "Success is not final, failure is not fatal: It is the courage to continue that counts.",
     category: "Success",
   },
-  {
-    text: "The purpose of our lives is to be happy.",
-    category: "Life",
-  },
+  { text: "The purpose of our lives is to be happy.", category: "Life" },
   {
     text: "You have within you right now, everything you need to deal with whatever the world can throw at you.",
     category: "Strength",
@@ -88,7 +85,7 @@ async function addQuote() {
     await postQuoteToServer(newQuote);
 
     // Update the category dropdown
-    updateCategoryDropdown();
+    populateCategories();
 
     // Display success message
     showNotification("New quote added successfully!", "green");
@@ -110,9 +107,7 @@ async function postQuoteToServer(quote) {
   try {
     const response = await fetch("https://jsonplaceholder.typicode.com/posts", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(quote),
     });
 
@@ -171,20 +166,20 @@ function createAddQuoteForm() {
 }
 
 // Function to update the category dropdown with unique categories
-function updateCategoryDropdown() {
-  const categorySelect = document.getElementById("categorySelect");
+function populateCategories() {
+  const categorySelect = document.getElementById("categoryFilter");
 
   // Clear existing options
   categorySelect.innerHTML = "";
 
+  // Create an "All Categories" option for displaying quotes from any category
+  const allOption = document.createElement("option");
+  allOption.value = "all";
+  allOption.textContent = "All Categories";
+  categorySelect.appendChild(allOption);
+
   // Get unique categories
   const uniqueCategories = [...new Set(quotes.map((quote) => quote.category))];
-
-  // Create an "All" option for displaying quotes from any category
-  const allOption = document.createElement("option");
-  allOption.value = "All";
-  allOption.textContent = "All";
-  categorySelect.appendChild(allOption);
 
   // Create options for each unique category
   uniqueCategories.forEach((category) => {
@@ -196,13 +191,13 @@ function updateCategoryDropdown() {
 }
 
 // Function to filter quotes based on the selected category
-function filterQuotesByCategory() {
-  const selectedCategory = document.getElementById("categorySelect").value;
+function filterQuotes() {
+  const selectedCategory = document.getElementById("categoryFilter").value;
   const quoteDisplay = document.getElementById("quoteDisplay");
 
   // Filter quotes based on selected category
   const filteredQuotes =
-    selectedCategory === "All"
+    selectedCategory === "all"
       ? quotes
       : quotes.filter((quote) => quote.category === selectedCategory);
 
@@ -228,19 +223,6 @@ function filterQuotesByCategory() {
   }
 }
 
-// Create category selection dropdown
-function createCategoryDropdown() {
-  const categorySelect = document.createElement("select");
-  categorySelect.id = "categorySelect";
-  categorySelect.addEventListener("change", filterQuotesByCategory);
-  document.body.insertBefore(
-    categorySelect,
-    document.getElementById("quoteDisplay")
-  );
-
-  updateCategoryDropdown();
-}
-
 // Load quotes from local storage
 function loadQuotes() {
   const storedQuotes = localStorage.getItem("quotes");
@@ -254,38 +236,10 @@ function saveQuotes() {
   localStorage.setItem("quotes", JSON.stringify(quotes));
 }
 
-// Function to export quotes to a JSON file
-function exportQuotes() {
-  const blob = new Blob([JSON.stringify(quotes, null, 2)], {
-    type: "application/json",
-  });
-  const url = URL.createObjectURL(blob);
-
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "quotes.json";
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-// Function to import quotes from a JSON file
-function importFromJsonFile(event) {
-  const fileReader = new FileReader();
-  fileReader.onload = function (event) {
-    const importedQuotes = JSON.parse(event.target.result);
-    quotes.push(...importedQuotes);
-    saveQuotes(); // Save updated quotes to local storage
-    updateCategoryDropdown(); // Update category dropdown after importing
-    showNotification("Quotes imported successfully!", "green");
-    showRandomQuote(); // Show a random quote after import
-  };
-  fileReader.readAsText(event.target.files[0]);
-}
-
 // Load existing quotes on startup
 loadQuotes();
 createAddQuoteForm();
-createCategoryDropdown();
+populateCategories(); // Populate the categories at the start
 showRandomQuote(); // Display an initial random quote
 
 // Set an interval to sync with the server every 10 seconds
@@ -306,7 +260,7 @@ async function syncQuotes() {
       saveQuotes(); // Save updated quotes to local storage
       showNotification("New quotes added from the server!", "green");
       alert("Quotes synced with server!"); // Alert for successful sync
-      updateCategoryDropdown(); // Update categories after syncing
+      populateCategories(); // Update categories after syncing
       showRandomQuote(); // Show a new random quote
     } else {
       showNotification("No new quotes to add from the server.", "orange");
@@ -320,16 +274,14 @@ async function syncQuotes() {
 async function fetchQuotesFromServer() {
   try {
     const response = await fetch("https://jsonplaceholder.typicode.com/posts");
-    if (!response.ok) {
-      throw new Error("Network response was not ok");
-    }
     const data = await response.json();
+    // Transforming data to match quote structure
     return data.map((item) => ({
-      text: item.title, // You can change this to item.body or any other field you prefer
-      category: "Imported", // Assign a default category
+      text: item.title, // For demonstration, using title as quote text
+      category: "Fetched", // You can modify category based on your needs
     }));
   } catch (error) {
     console.error("Error fetching quotes from server:", error);
-    return []; // Return an empty array in case of an error
+    return [];
   }
 }
