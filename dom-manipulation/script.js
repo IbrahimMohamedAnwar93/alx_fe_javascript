@@ -58,9 +58,6 @@ function showRandomQuote() {
   quoteCategory.textContent = `Category: ${randomQuote.category}`;
   quoteDisplay.appendChild(quoteCategory);
 
-  // Save last viewed quote in session storage
-  sessionStorage.setItem("lastViewedQuote", JSON.stringify(randomQuote));
-
   // Announce the new quote to screen readers
   quoteDisplay.setAttribute("aria-live", "polite");
 }
@@ -196,8 +193,6 @@ function populateCategories() {
 // Function to filter quotes based on the selected category
 function filterQuotes() {
   const selectedCategory = document.getElementById("categoryFilter").value;
-  localStorage.setItem("selectedCategory", selectedCategory); // Save selected category filter
-
   const quoteDisplay = document.getElementById("quoteDisplay");
 
   // Filter quotes based on selected category
@@ -241,36 +236,6 @@ function saveQuotes() {
   localStorage.setItem("quotes", JSON.stringify(quotes));
 }
 
-// Load existing quotes on startup
-loadQuotes();
-createAddQuoteForm();
-populateCategories(); // Populate the categories at the start
-showRandomQuote(); // Display an initial random quote
-
-// Load the selected category on page load
-document.addEventListener("DOMContentLoaded", () => {
-  const selectedCategory = localStorage.getItem("selectedCategory") || "all";
-  document.getElementById("categoryFilter").value = selectedCategory;
-  filterQuotes(); // Filter quotes based on the selected category
-});
-
-// Function to export quotes to a JSON file
-document.getElementById("exportQuotes").addEventListener("click", exportQuotes);
-
-function exportQuotes() {
-  const dataStr = JSON.stringify(quotes, null, 2); // Pretty-print JSON
-  const blob = new Blob([dataStr], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "quotes.json";
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
-
 // Function to import quotes from a JSON file
 function importFromJsonFile(event) {
   const fileReader = new FileReader();
@@ -286,8 +251,14 @@ function importFromJsonFile(event) {
 
 // Add event listener for file input to handle import
 document
-  .getElementById("importQuotes")
+  .getElementById("importFile")
   .addEventListener("change", importFromJsonFile);
+
+// Load existing quotes on startup
+loadQuotes();
+createAddQuoteForm();
+populateCategories(); // Populate the categories at the start
+showRandomQuote(); // Display an initial random quote
 
 // Periodically sync quotes with server
 setInterval(syncQuotes, 10000); // Sync every 10 seconds
@@ -329,6 +300,7 @@ async function syncQuotes() {
       quotes.push(...uniqueQuotes);
       saveQuotes();
       showNotification("New quotes added from the server!", "green");
+      alert("Quotes synced with server!"); // Alert for successful sync
       populateCategories();
       showRandomQuote();
     } else {
@@ -339,15 +311,18 @@ async function syncQuotes() {
   }
 }
 
-// Simulate fetching quotes from server
+// Function to fetch quotes from the server
 async function fetchQuotesFromServer() {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const serverQuotes = [
-        { text: "New quote from server 1", category: "Inspiration" },
-        { text: "New quote from server 2", category: "Motivation" },
-      ];
-      resolve(serverQuotes);
-    }, 2000);
-  });
+  try {
+    const response = await fetch("https://jsonplaceholder.typicode.com/posts");
+    const data = await response.json();
+    // Transforming data to match quote structure
+    return data.map((item) => ({
+      text: item.title, // For demonstration, using title as quote text
+      category: "Fetched", // You can modify category based on your needs
+    }));
+  } catch (error) {
+    console.error("Error fetching quotes from server:", error);
+    return [];
+  }
 }
