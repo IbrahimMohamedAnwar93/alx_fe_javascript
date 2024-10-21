@@ -157,20 +157,17 @@ function updateCategoryDropdown() {
 }
 
 // Function to filter quotes based on the selected category
-function filterQuotes() {
-  const selectedCategory = document.getElementById("categoryFilter").value;
+function filterQuotesByCategory() {
+  const selectedCategory = document.getElementById("categorySelect").value;
   const quoteDisplay = document.getElementById("quoteDisplay");
 
   // Filter quotes based on selected category
   const filteredQuotes =
-    selectedCategory === "all"
+    selectedCategory === "All"
       ? quotes
       : quotes.filter((quote) => quote.category === selectedCategory);
 
-  // Update the local storage with the last selected category
-  localStorage.setItem("lastSelectedCategory", selectedCategory);
-
-  // Display a random quote from the filtered list
+  // Select a random quote from the filtered list
   if (filteredQuotes.length > 0) {
     const randomIndex = Math.floor(Math.random() * filteredQuotes.length);
     const randomQuote = filteredQuotes[randomIndex];
@@ -195,19 +192,14 @@ function filterQuotes() {
 // Create category selection dropdown
 function createCategoryDropdown() {
   const categorySelect = document.createElement("select");
-  categorySelect.id = "categoryFilter";
-  categorySelect.addEventListener("change", filterQuotes);
+  categorySelect.id = "categorySelect";
+  categorySelect.addEventListener("change", filterQuotesByCategory);
   document.body.insertBefore(
     categorySelect,
     document.getElementById("quoteDisplay")
   );
 
   updateCategoryDropdown();
-
-  // Restore last selected category from local storage
-  const lastSelectedCategory =
-    localStorage.getItem("lastSelectedCategory") || "all";
-  categorySelect.value = lastSelectedCategory;
 }
 
 // Load quotes from local storage
@@ -255,19 +247,57 @@ function importFromJsonFile(event) {
 function initializeApp() {
   loadQuotes(); // Load existing quotes from local storage
   createAddQuoteForm();
-  createCategoryDropdown();
-  showRandomQuote(); // Show a random quote on app initialization
-
-  // Add event listener for exporting quotes
-  document
-    .getElementById("exportQuotesButton")
-    .addEventListener("click", exportQuotes);
-
-  // Add event listener for importing quotes
-  document
-    .getElementById("importQuotesFile")
-    .addEventListener("change", importFromJsonFile);
+  createCategoryDropdown(); // Populate categories
+  showRandomQuote(); // Show a random quote
 }
 
-// Initialize the application when the DOM is ready
-document.addEventListener("DOMContentLoaded", initializeApp);
+// Adding button for exporting quotes
+function createExportButton() {
+  const exportButton = document.createElement("button");
+  exportButton.textContent = "Export Quotes";
+  exportButton.onclick = exportQuotes;
+  document.getElementById("exportContainer").appendChild(exportButton);
+}
+
+// Function to populate categories dynamically
+function populateCategories() {
+  const categorySelect = document.getElementById("categoryFilter");
+
+  // Clear existing options
+  categorySelect.innerHTML = "";
+
+  // Get unique categories
+  const uniqueCategories = [...new Set(quotes.map((quote) => quote.category))];
+
+  // Create an "All" option
+  const allOption = document.createElement("option");
+  allOption.value = "all";
+  allOption.textContent = "All Categories";
+  categorySelect.appendChild(allOption);
+
+  // Create options for each unique category
+  uniqueCategories.forEach((category) => {
+    const option = document.createElement("option");
+    option.value = category;
+    option.textContent = category;
+    categorySelect.appendChild(option);
+  });
+
+  // Restore last selected category from local storage
+  const lastSelectedCategory =
+    localStorage.getItem("lastSelectedCategory") || "all";
+  categorySelect.value = lastSelectedCategory;
+
+  // Update quotes displayed based on last selected category
+  filterQuotesByCategory();
+
+  // Save selected category to local storage on change
+  categorySelect.addEventListener("change", (event) => {
+    const selectedCategory = event.target.value;
+    localStorage.setItem("lastSelectedCategory", selectedCategory);
+    filterQuotesByCategory();
+  });
+}
+
+// Run the application on window load
+window.onload = initializeApp;
