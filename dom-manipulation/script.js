@@ -66,7 +66,7 @@ function showRandomQuote() {
 }
 
 // Function to add a new quote
-function addQuote() {
+async function addQuote() {
   const newQuoteText = document.getElementById("newQuoteText").value.trim();
   const newQuoteCategory = document
     .getElementById("newQuoteCategory")
@@ -75,11 +75,17 @@ function addQuote() {
 
   // Validate inputs
   if (newQuoteText && newQuoteCategory) {
+    // Create new quote object
+    const newQuote = { text: newQuoteText, category: newQuoteCategory };
+
     // Add new quote to the array
-    quotes.push({ text: newQuoteText, category: newQuoteCategory });
+    quotes.push(newQuote);
 
     // Save quotes to local storage
     saveQuotes();
+
+    // Send new quote to server
+    await postQuoteToServer(newQuote);
 
     // Update the category dropdown
     updateCategoryDropdown();
@@ -96,6 +102,29 @@ function addQuote() {
   } else {
     // Display error message
     showNotification("Please fill out both fields.", "red");
+  }
+}
+
+// Function to POST new quote to the server
+async function postQuoteToServer(quote) {
+  try {
+    const response = await fetch("https://jsonplaceholder.typicode.com/posts", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(quote),
+    });
+
+    if (!response.ok) {
+      throw new Error("Network response was not ok");
+    }
+
+    const data = await response.json();
+    console.log("Quote successfully posted:", data);
+  } catch (error) {
+    console.error("Error posting quote to server:", error);
+    showNotification("Failed to add quote to server.", "red");
   }
 }
 
@@ -253,44 +282,16 @@ function importFromJsonFile(event) {
   fileReader.readAsText(event.target.files[0]);
 }
 
-// Function to initialize the application
-function initializeApp() {
-  loadQuotes(); // Load existing quotes from local storage
-  createAddQuoteForm();
-  createCategoryDropdown(); // Populate categories
-  showRandomQuote(); // Show a random quote
-}
+// Load existing quotes on startup
+loadQuotes();
+createAddQuoteForm();
+createCategoryDropdown();
+showRandomQuote(); // Display an initial random quote
 
-// Adding button for exporting quotes
-function createExportButton() {
-  const exportButton = document.createElement("button");
-  exportButton.textContent = "Export Quotes";
-  exportButton.onclick = exportQuotes;
-  document.getElementById("exportContainer").appendChild(exportButton);
-}
+// Set an interval to sync with the server every 10 seconds
+setInterval(syncQuotes, 10000);
 
-// Run the application on window load
-window.onload = initializeApp;
-createExportButton();
-
-// Function to simulate fetching quotes from a mock server
-async function fetchQuotesFromServer() {
-  try {
-    const response = await fetch("https://jsonplaceholder.typicode.com/posts");
-    const serverQuotes = await response.json();
-
-    // Transform the fetched data into the desired format
-    return serverQuotes.slice(0, 5).map((post) => ({
-      text: post.title,
-      category: "General", // Assign a default category
-    }));
-  } catch (error) {
-    console.error("Error fetching quotes from server:", error);
-    return []; // Return an empty array in case of an error
-  }
-}
-
-// Function to sync quotes with the server
+// Sync quotes with the server function (as defined in your previous code)
 async function syncQuotes() {
   const serverQuotes = await fetchQuotesFromServer();
 
@@ -314,5 +315,20 @@ async function syncQuotes() {
   }
 }
 
-// Set an interval to sync with the server every 10 seconds
-setInterval(syncQuotes, 10000);
+// Function to fetch quotes from the server
+async function fetchQuotesFromServer() {
+  try {
+    const response = await fetch("https://jsonplaceholder.typicode.com/posts");
+    if (!response.ok) {
+      throw new Error("Network response was not ok");
+    }
+    const data = await response.json();
+    return data.map((item) => ({
+      text: item.title, // You can change this to item.body or any other field you prefer
+      category: "Imported", // Assign a default category
+    }));
+  } catch (error) {
+    console.error("Error fetching quotes from server:", error);
+    return []; // Return an empty array in case of an error
+  }
+}
