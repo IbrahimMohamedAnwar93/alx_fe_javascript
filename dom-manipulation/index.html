@@ -13,9 +13,10 @@
   <div id="quoteDisplay"></div>
   <button id="newQuote">Show New Quote</button>
 
-  <!-- New input for importing JSON -->
-  <input type="file" id="importFile" accept=".json" onchange="importFromJsonFile(event)" />
-
+  <div id="exportContainer"> <!-- Container for export button -->
+    <!-- New input for importing JSON -->
+    <input type="file" id="importFile" accept=".json" onchange="importFromJsonFile(event)" />
+  </div>
   <script src="script.js"></script>
 </body>
 
