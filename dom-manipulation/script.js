@@ -78,6 +78,9 @@ function addQuote() {
     // Add new quote to the array
     quotes.push({ text: newQuoteText, category: newQuoteCategory });
 
+    // Save quotes to local storage
+    saveQuotes();
+
     // Update the category dropdown
     updateCategoryDropdown();
 
@@ -191,10 +194,28 @@ function createCategoryDropdown() {
   const categorySelect = document.createElement("select");
   categorySelect.id = "categorySelect";
   categorySelect.addEventListener("change", filterQuotesByCategory);
-  document.body.appendChild(categorySelect);
+  document.body.insertBefore(
+    categorySelect,
+    document.getElementById("quoteDisplay")
+  );
+
+  updateCategoryDropdown();
 }
 
-// Function to export quotes as a JSON file
+// Load quotes from local storage
+function loadQuotes() {
+  const storedQuotes = localStorage.getItem("quotes");
+  if (storedQuotes) {
+    quotes.push(...JSON.parse(storedQuotes));
+  }
+}
+
+// Save quotes to local storage
+function saveQuotes() {
+  localStorage.setItem("quotes", JSON.stringify(quotes));
+}
+
+// Function to export quotes to a JSON file
 function exportQuotes() {
   const blob = new Blob([JSON.stringify(quotes, null, 2)], {
     type: "application/json",
@@ -205,40 +226,40 @@ function exportQuotes() {
   a.href = url;
   a.download = "quotes.json";
   a.click();
-
-  // Clean up the URL object
   URL.revokeObjectURL(url);
 }
 
 // Function to import quotes from a JSON file
 function importFromJsonFile(event) {
-  const file = event.target.files[0];
-  if (file) {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const importedQuotes = JSON.parse(e.target.result);
-        if (Array.isArray(importedQuotes)) {
-          // Merge new quotes with existing quotes
-          quotes.push(...importedQuotes);
-          alert("Quotes imported successfully!");
-          // Optionally: refresh or display a new quote
-          showRandomQuote();
-        } else {
-          alert("Imported data is not a valid array.");
-        }
-      } catch (error) {
-        alert("Error reading file: " + error.message);
-      }
-    };
-    reader.readAsText(file);
-  }
+  const fileReader = new FileReader();
+  fileReader.onload = function (event) {
+    const importedQuotes = JSON.parse(event.target.result);
+    quotes.push(...importedQuotes);
+    saveQuotes(); // Save updated quotes to local storage
+    updateCategoryDropdown(); // Update category dropdown after importing
+    alert("Quotes imported successfully!");
+    showRandomQuote(); // Show a random quote after import
+  };
+  fileReader.readAsText(event.target.files[0]);
 }
 
-// Event listeners
+// Function to initialize the application
+function initializeApp() {
+  loadQuotes(); // Load existing quotes from local storage
+  createAddQuoteForm();
+  createCategoryDropdown();
+  showRandomQuote();
+}
+
+// Adding button for exporting quotes
+function createExportButton() {
+  const exportButton = document.createElement("button");
+  exportButton.textContent = "Export Quotes";
+  exportButton.onclick = exportQuotes;
+  document.getElementById("exportContainer").appendChild(exportButton);
+}
+
+// Call the functions to set everything up
+initializeApp();
+createExportButton();
 document.getElementById("newQuote").addEventListener("click", showRandomQuote);
-document.getElementById("exportQuotes").addEventListener("click", exportQuotes);
-createAddQuoteForm();
-createCategoryDropdown();
-updateCategoryDropdown();
-showRandomQuote();
