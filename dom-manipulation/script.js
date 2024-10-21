@@ -58,6 +58,9 @@ function showRandomQuote() {
   quoteCategory.textContent = `Category: ${randomQuote.category}`;
   quoteDisplay.appendChild(quoteCategory);
 
+  // Save last viewed quote in session storage
+  sessionStorage.setItem("lastViewedQuote", JSON.stringify(randomQuote));
+
   // Announce the new quote to screen readers
   quoteDisplay.setAttribute("aria-live", "polite");
 }
@@ -193,6 +196,8 @@ function populateCategories() {
 // Function to filter quotes based on the selected category
 function filterQuotes() {
   const selectedCategory = document.getElementById("categoryFilter").value;
+  localStorage.setItem("selectedCategory", selectedCategory); // Save selected category filter
+
   const quoteDisplay = document.getElementById("quoteDisplay");
 
   // Filter quotes based on selected category
@@ -242,14 +247,79 @@ createAddQuoteForm();
 populateCategories(); // Populate the categories at the start
 showRandomQuote(); // Display an initial random quote
 
-// Set an interval to sync with the server every 10 seconds
-setInterval(syncQuotes, 10000);
+// Load the selected category on page load
+document.addEventListener("DOMContentLoaded", () => {
+  const selectedCategory = localStorage.getItem("selectedCategory") || "all";
+  document.getElementById("categoryFilter").value = selectedCategory;
+  filterQuotes(); // Filter quotes based on the selected category
+});
 
-// Sync quotes with the server function (as defined in your previous code)
+// Function to export quotes to a JSON file
+document.getElementById("exportQuotes").addEventListener("click", exportQuotes);
+
+function exportQuotes() {
+  const dataStr = JSON.stringify(quotes, null, 2); // Pretty-print JSON
+  const blob = new Blob([dataStr], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "quotes.json";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// Function to import quotes from a JSON file
+function importFromJsonFile(event) {
+  const fileReader = new FileReader();
+  fileReader.onload = function (event) {
+    const importedQuotes = JSON.parse(event.target.result);
+    quotes.push(...importedQuotes);
+    saveQuotes();
+    populateCategories();
+    showNotification("Quotes imported successfully!", "green");
+  };
+  fileReader.readAsText(event.target.files[0]);
+}
+
+// Add event listener for file input to handle import
+document
+  .getElementById("importQuotes")
+  .addEventListener("change", importFromJsonFile);
+
+// Periodically sync quotes with server
+setInterval(syncQuotes, 10000); // Sync every 10 seconds
+
+// Sync local quotes with server
 async function syncQuotes() {
   const serverQuotes = await fetchQuotesFromServer();
 
   if (serverQuotes.length > 0) {
+    const conflictingQuotes = serverQuotes.filter((serverQuote) =>
+      quotes.some((localQuote) => localQuote.text === serverQuote.text)
+    );
+
+    if (conflictingQuotes.length > 0) {
+      showNotification(
+        "Conflicts detected. Server data will take precedence.",
+        "orange"
+      );
+
+      // Handle conflicts by replacing local quotes with server quotes
+      conflictingQuotes.forEach((conflict) => {
+        const index = quotes.findIndex((q) => q.text === conflict.text);
+        if (index !== -1) {
+          quotes[index] = conflict; // Replace local with server
+        }
+      });
+
+      saveQuotes();
+      populateCategories();
+      showRandomQuote();
+    }
+
     const uniqueQuotes = serverQuotes.filter(
       (serverQuote) =>
         !quotes.some((localQuote) => localQuote.text === serverQuote.text)
@@ -257,11 +327,10 @@ async function syncQuotes() {
 
     if (uniqueQuotes.length > 0) {
       quotes.push(...uniqueQuotes);
-      saveQuotes(); // Save updated quotes to local storage
+      saveQuotes();
       showNotification("New quotes added from the server!", "green");
-      alert("Quotes synced with server!"); // Alert for successful sync
-      populateCategories(); // Update categories after syncing
-      showRandomQuote(); // Show a new random quote
+      populateCategories();
+      showRandomQuote();
     } else {
       showNotification("No new quotes to add from the server.", "orange");
     }
@@ -270,18 +339,15 @@ async function syncQuotes() {
   }
 }
 
-// Function to fetch quotes from the server
+// Simulate fetching quotes from server
 async function fetchQuotesFromServer() {
-  try {
-    const response = await fetch("https://jsonplaceholder.typicode.com/posts");
-    const data = await response.json();
-    // Transforming data to match quote structure
-    return data.map((item) => ({
-      text: item.title, // For demonstration, using title as quote text
-      category: "Fetched", // You can modify category based on your needs
-    }));
-  } catch (error) {
-    console.error("Error fetching quotes from server:", error);
-    return [];
-  }
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      const serverQuotes = [
+        { text: "New quote from server 1", category: "Inspiration" },
+        { text: "New quote from server 2", category: "Motivation" },
+      ];
+      resolve(serverQuotes);
+    }, 2000);
+  });
 }
