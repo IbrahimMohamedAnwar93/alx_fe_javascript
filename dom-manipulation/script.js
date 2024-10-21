@@ -301,3 +301,57 @@ function populateCategories() {
 
 // Run the application on window load
 window.onload = initializeApp;
+
+// Function to simulate fetching quotes from a mock server
+function fetchQuotesFromServer() {
+  // Simulating a network request with setTimeout
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      // Simulated server data (for example purposes, it can be replaced with an API call)
+      const serverQuotes = [
+        { text: "New quote from the server.", category: "Inspiration" },
+        { text: "Another server quote.", category: "Motivation" },
+      ];
+      resolve(serverQuotes);
+    }, 2000); // Simulate 2 seconds delay
+  });
+}
+
+// Function to sync quotes with the server
+async function syncQuotes() {
+  try {
+    const serverQuotes = await fetchQuotesFromServer();
+
+    // Merge server quotes into local quotes, using the server data if there's a conflict
+    serverQuotes.forEach((serverQuote) => {
+      const existingQuoteIndex = quotes.findIndex(
+        (quote) => quote.text === serverQuote.text
+      );
+      if (existingQuoteIndex !== -1) {
+        // Conflict detected, server quote takes precedence
+        quotes[existingQuoteIndex] = serverQuote;
+        alert(`Quote updated: "${serverQuote.text}"`);
+      } else {
+        // No conflict, simply add the new quote
+        quotes.push(serverQuote);
+      }
+    });
+
+    saveQuotes(); // Update local storage with new quotes
+    updateCategoryDropdown(); // Refresh category dropdown
+    showRandomQuote(); // Show a new random quote
+  } catch (error) {
+    console.error("Error syncing quotes:", error);
+  }
+}
+
+// Function to start periodic syncing
+function startPeriodicSync() {
+  syncQuotes(); // Initial sync
+  setInterval(syncQuotes, 10000); // Sync every 10 seconds
+}
+
+// Call the function to set everything up
+initializeApp();
+createExportButton();
+startPeriodicSync(); // Start syncing process
