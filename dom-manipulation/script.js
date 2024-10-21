@@ -236,61 +236,37 @@ function saveQuotes() {
   localStorage.setItem("quotes", JSON.stringify(quotes));
 }
 
-// Function to import quotes from a JSON file
-function importFromJsonFile(event) {
-  const fileReader = new FileReader();
-  fileReader.onload = function (event) {
-    const importedQuotes = JSON.parse(event.target.result);
-    quotes.push(...importedQuotes);
-    saveQuotes();
-    populateCategories();
-    showNotification("Quotes imported successfully!", "green");
-  };
-  fileReader.readAsText(event.target.files[0]);
-}
-
-// Add event listener for file input to handle import
-document
-  .getElementById("importFile")
-  .addEventListener("change", importFromJsonFile);
-
 // Load existing quotes on startup
 loadQuotes();
 createAddQuoteForm();
 populateCategories(); // Populate the categories at the start
 showRandomQuote(); // Display an initial random quote
 
-// Periodically sync quotes with server
-setInterval(syncQuotes, 10000); // Sync every 10 seconds
+// Function to export quotes to a JSON file
+function exportQuotes() {
+  const dataStr = JSON.stringify(quotes, null, 2);
+  const blob = new Blob([dataStr], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "quotes.json";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url); // Clean up
+}
 
-// Sync local quotes with server
+// Add event listener to the export button
+document.getElementById("exportQuotes").addEventListener("click", exportQuotes);
+
+// Set an interval to sync with the server every 10 seconds
+setInterval(syncQuotes, 10000);
+
+// Sync quotes with the server function
 async function syncQuotes() {
   const serverQuotes = await fetchQuotesFromServer();
 
   if (serverQuotes.length > 0) {
-    const conflictingQuotes = serverQuotes.filter((serverQuote) =>
-      quotes.some((localQuote) => localQuote.text === serverQuote.text)
-    );
-
-    if (conflictingQuotes.length > 0) {
-      showNotification(
-        "Conflicts detected. Server data will take precedence.",
-        "orange"
-      );
-
-      // Handle conflicts by replacing local quotes with server quotes
-      conflictingQuotes.forEach((conflict) => {
-        const index = quotes.findIndex((q) => q.text === conflict.text);
-        if (index !== -1) {
-          quotes[index] = conflict; // Replace local with server
-        }
-      });
-
-      saveQuotes();
-      populateCategories();
-      showRandomQuote();
-    }
-
     const uniqueQuotes = serverQuotes.filter(
       (serverQuote) =>
         !quotes.some((localQuote) => localQuote.text === serverQuote.text)
@@ -298,11 +274,11 @@ async function syncQuotes() {
 
     if (uniqueQuotes.length > 0) {
       quotes.push(...uniqueQuotes);
-      saveQuotes();
+      saveQuotes(); // Save updated quotes to local storage
       showNotification("New quotes added from the server!", "green");
       alert("Quotes synced with server!"); // Alert for successful sync
-      populateCategories();
-      showRandomQuote();
+      populateCategories(); // Update categories after syncing
+      showRandomQuote(); // Show a new random quote
     } else {
       showNotification("No new quotes to add from the server.", "orange");
     }
