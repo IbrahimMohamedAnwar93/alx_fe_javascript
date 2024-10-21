@@ -78,7 +78,8 @@ function addQuote() {
     // Add new quote to the array
     quotes.push({ text: newQuoteText, category: newQuoteCategory });
 
-    // Update the category dropdown
+    // Update local storage and the category dropdown
+    saveQuotes();
     updateCategoryDropdown();
 
     // Display success message
@@ -199,8 +200,91 @@ function createCategoryDropdown() {
   updateCategoryDropdown();
 }
 
-// Initialize the application
-document.getElementById("newQuote").addEventListener("click", showRandomQuote);
-createAddQuoteForm();
-createCategoryDropdown();
-showRandomQuote();
+// Load quotes from local storage
+function loadQuotes() {
+  const storedQuotes = localStorage.getItem("quotes");
+  if (storedQuotes) {
+    quotes.push(...JSON.parse(storedQuotes));
+  }
+}
+
+// Save quotes to local storage
+function saveQuotes() {
+  localStorage.setItem("quotes", JSON.stringify(quotes));
+}
+
+// Function to export quotes to a JSON file
+function exportQuotes() {
+  const blob = new Blob([JSON.stringify(quotes, null, 2)], {
+    type: "application/json",
+  });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "quotes.json";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// Function to import quotes from a JSON file
+function importFromJsonFile(event) {
+  const fileReader = new FileReader();
+  fileReader.onload = function (event) {
+    try {
+      const importedQuotes = JSON.parse(event.target.result);
+      // Check for duplicates
+      const existingTexts = new Set(quotes.map((quote) => quote.text));
+      const uniqueImportedQuotes = importedQuotes.filter(
+        (quote) => !existingTexts.has(quote.text)
+      );
+
+      if (uniqueImportedQuotes.length > 0) {
+        quotes.push(...uniqueImportedQuotes);
+        saveQuotes();
+        updateCategoryDropdown(); // Update category dropdown after importing
+        alert("Quotes imported successfully!");
+      } else {
+        alert("No new quotes to import.");
+      }
+    } catch (error) {
+      alert("Failed to import quotes. Please ensure the file is a valid JSON.");
+    }
+  };
+  fileReader.readAsText(event.target.files[0]);
+}
+
+// Function to initialize the application
+function initializeApp() {
+  loadQuotes(); // Load existing quotes from local storage
+  createAddQuoteForm();
+  createCategoryDropdown();
+  showRandomQuote();
+}
+
+// Adding button for exporting quotes
+function createExportButton() {
+  const exportButton = document.createElement("button");
+  exportButton.textContent = "Export Quotes";
+  exportButton.onclick = exportQuotes;
+  document.body.appendChild(exportButton);
+}
+
+// Adding input for importing quotes
+function createImportInput() {
+  const importInput = document.createElement("input");
+  importInput.type = "file";
+  importInput.id = "importFile";
+  importInput.accept = ".json";
+  importInput.onchange = importFromJsonFile;
+
+  const importLabel = document.createElement("label");
+  importLabel.textContent = "Import Quotes (JSON): ";
+  importLabel.appendChild(importInput);
+  document.body.appendChild(importLabel);
+}
+
+// Call the functions to set everything up
+initializeApp();
+createExportButton();
+createImportInput();
