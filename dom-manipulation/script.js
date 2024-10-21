@@ -85,8 +85,7 @@ function addQuote() {
     updateCategoryDropdown();
 
     // Display success message
-    messageContainer.textContent = "New quote added successfully!";
-    messageContainer.style.color = "green";
+    showNotification("New quote added successfully!", "green");
 
     // Clear input fields
     document.getElementById("newQuoteText").value = "";
@@ -96,9 +95,20 @@ function addQuote() {
     showRandomQuote();
   } else {
     // Display error message
-    messageContainer.textContent = "Please fill out both fields.";
-    messageContainer.style.color = "red";
+    showNotification("Please fill out both fields.", "red");
   }
+}
+
+// Function to create a notification message
+function showNotification(message, color) {
+  const messageContainer = document.getElementById("messageContainer");
+  messageContainer.textContent = message;
+  messageContainer.style.color = color;
+
+  // Automatically hide the message after 3 seconds
+  setTimeout(() => {
+    messageContainer.textContent = "";
+  }, 3000);
 }
 
 // Function to create the quote addition form
@@ -237,7 +247,7 @@ function importFromJsonFile(event) {
     quotes.push(...importedQuotes);
     saveQuotes(); // Save updated quotes to local storage
     updateCategoryDropdown(); // Update category dropdown after importing
-    alert("Quotes imported successfully!");
+    showNotification("Quotes imported successfully!", "green");
     showRandomQuote(); // Show a random quote after import
   };
   fileReader.readAsText(event.target.files[0]);
@@ -259,99 +269,50 @@ function createExportButton() {
   document.getElementById("exportContainer").appendChild(exportButton);
 }
 
-// Function to populate categories dynamically
-function populateCategories() {
-  const categorySelect = document.getElementById("categoryFilter");
-
-  // Clear existing options
-  categorySelect.innerHTML = "";
-
-  // Get unique categories
-  const uniqueCategories = [...new Set(quotes.map((quote) => quote.category))];
-
-  // Create an "All" option
-  const allOption = document.createElement("option");
-  allOption.value = "all";
-  allOption.textContent = "All Categories";
-  categorySelect.appendChild(allOption);
-
-  // Create options for each unique category
-  uniqueCategories.forEach((category) => {
-    const option = document.createElement("option");
-    option.value = category;
-    option.textContent = category;
-    categorySelect.appendChild(option);
-  });
-
-  // Restore last selected category from local storage
-  const lastSelectedCategory =
-    localStorage.getItem("lastSelectedCategory") || "all";
-  categorySelect.value = lastSelectedCategory;
-
-  // Update quotes displayed based on last selected category
-  filterQuotesByCategory();
-
-  // Save selected category to local storage on change
-  categorySelect.addEventListener("change", (event) => {
-    const selectedCategory = event.target.value;
-    localStorage.setItem("lastSelectedCategory", selectedCategory);
-    filterQuotesByCategory();
-  });
-}
-
 // Run the application on window load
 window.onload = initializeApp;
+createExportButton();
 
 // Function to simulate fetching quotes from a mock server
-function fetchQuotesFromServer() {
-  // Simulating a network request with setTimeout
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      // Simulated server data (for example purposes, it can be replaced with an API call)
-      const serverQuotes = [
-        { text: "New quote from the server.", category: "Inspiration" },
-        { text: "Another server quote.", category: "Motivation" },
-      ];
-      resolve(serverQuotes);
-    }, 2000); // Simulate 2 seconds delay
-  });
+async function fetchQuotesFromServer() {
+  try {
+    const response = await fetch("https://jsonplaceholder.typicode.com/posts");
+    const serverQuotes = await response.json();
+
+    // Transform the fetched data into the desired format
+    return serverQuotes.slice(0, 5).map((post) => ({
+      text: post.title,
+      category: "General", // Assign a default category
+    }));
+  } catch (error) {
+    console.error("Error fetching quotes from server:", error);
+    return []; // Return an empty array in case of an error
+  }
 }
 
 // Function to sync quotes with the server
 async function syncQuotes() {
-  try {
-    const serverQuotes = await fetchQuotesFromServer();
+  const serverQuotes = await fetchQuotesFromServer();
 
-    // Merge server quotes into local quotes, using the server data if there's a conflict
-    serverQuotes.forEach((serverQuote) => {
-      const existingQuoteIndex = quotes.findIndex(
-        (quote) => quote.text === serverQuote.text
-      );
-      if (existingQuoteIndex !== -1) {
-        // Conflict detected, server quote takes precedence
-        quotes[existingQuoteIndex] = serverQuote;
-        alert(`Quote updated: "${serverQuote.text}"`);
-      } else {
-        // No conflict, simply add the new quote
-        quotes.push(serverQuote);
-      }
-    });
+  if (serverQuotes.length > 0) {
+    const uniqueQuotes = serverQuotes.filter(
+      (serverQuote) =>
+        !quotes.some((localQuote) => localQuote.text === serverQuote.text)
+    );
 
-    saveQuotes(); // Update local storage with new quotes
-    updateCategoryDropdown(); // Refresh category dropdown
-    showRandomQuote(); // Show a new random quote
-  } catch (error) {
-    console.error("Error syncing quotes:", error);
+    if (uniqueQuotes.length > 0) {
+      quotes.push(...uniqueQuotes);
+      saveQuotes(); // Save updated quotes to local storage
+      showNotification("New quotes added from the server!", "green");
+      updateCategoryDropdown(); // Update categories after syncing
+      showRandomQuote(); // Show a new random quote
+    } else {
+      showNotification("No new quotes to add from the server.", "orange");
+    }
+  } else {
+    showNotification("Failed to fetch quotes from the server.", "red");
   }
 }
 
-// Function to start periodic syncing
-function startPeriodicSync() {
-  syncQuotes(); // Initial sync
-  setInterval(syncQuotes, 10000); // Sync every 10 seconds
-}
-
-// Call the function to set everything up
-initializeApp();
-createExportButton();
-startPeriodicSync(); // Start syncing process
+// Set an interval to sync with the server every 10 seconds
+setInterval(syncQuotes, 10000);
