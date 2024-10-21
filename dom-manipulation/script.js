@@ -256,8 +256,32 @@ function exportQuotes() {
   URL.revokeObjectURL(url); // Clean up
 }
 
-// Add event listener to the export button
-document.getElementById("exportQuotes").addEventListener("click", exportQuotes);
+// Function to import quotes from a JSON file
+function importFromJsonFile(event) {
+  const file = event.target.files[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = function (e) {
+      try {
+        const importedQuotes = JSON.parse(e.target.result);
+        // Validate the imported quotes structure
+        if (Array.isArray(importedQuotes)) {
+          quotes.push(...importedQuotes);
+          saveQuotes(); // Save updated quotes to local storage
+          populateCategories(); // Update categories after importing
+          showNotification("Quotes imported successfully!", "green");
+          showRandomQuote(); // Show a new random quote
+        } else {
+          showNotification("Invalid quotes format in the file.", "red");
+        }
+      } catch (error) {
+        console.error("Error parsing imported file:", error);
+        showNotification("Failed to import quotes.", "red");
+      }
+    };
+    reader.readAsText(file);
+  }
+}
 
 // Set an interval to sync with the server every 10 seconds
 setInterval(syncQuotes, 10000);
@@ -276,7 +300,6 @@ async function syncQuotes() {
       quotes.push(...uniqueQuotes);
       saveQuotes(); // Save updated quotes to local storage
       showNotification("New quotes added from the server!", "green");
-      alert("Quotes synced with server!"); // Alert for successful sync
       populateCategories(); // Update categories after syncing
       showRandomQuote(); // Show a new random quote
     } else {
@@ -302,3 +325,9 @@ async function fetchQuotesFromServer() {
     return [];
   }
 }
+
+// Add event listeners
+document.getElementById("exportQuotes").addEventListener("click", exportQuotes);
+document
+  .getElementById("importFile")
+  .addEventListener("change", importFromJsonFile);
