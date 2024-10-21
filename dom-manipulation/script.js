@@ -305,6 +305,7 @@ async function syncQuotes() {
       quotes.push(...uniqueQuotes);
       saveQuotes(); // Save updated quotes to local storage
       showNotification("New quotes added from the server!", "green");
+      alert("Quotes synced with server!"); // Alert for successful sync
       updateCategoryDropdown(); // Update categories after syncing
       showRandomQuote(); // Show a new random quote
     } else {
