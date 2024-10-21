@@ -157,17 +157,20 @@ function updateCategoryDropdown() {
 }
 
 // Function to filter quotes based on the selected category
-function filterQuotesByCategory() {
-  const selectedCategory = document.getElementById("categorySelect").value;
+function filterQuotes() {
+  const selectedCategory = document.getElementById("categoryFilter").value;
   const quoteDisplay = document.getElementById("quoteDisplay");
 
   // Filter quotes based on selected category
   const filteredQuotes =
-    selectedCategory === "All"
+    selectedCategory === "all"
       ? quotes
       : quotes.filter((quote) => quote.category === selectedCategory);
 
-  // Select a random quote from the filtered list
+  // Update the local storage with the last selected category
+  localStorage.setItem("lastSelectedCategory", selectedCategory);
+
+  // Display a random quote from the filtered list
   if (filteredQuotes.length > 0) {
     const randomIndex = Math.floor(Math.random() * filteredQuotes.length);
     const randomQuote = filteredQuotes[randomIndex];
@@ -192,14 +195,19 @@ function filterQuotesByCategory() {
 // Create category selection dropdown
 function createCategoryDropdown() {
   const categorySelect = document.createElement("select");
-  categorySelect.id = "categorySelect";
-  categorySelect.addEventListener("change", filterQuotesByCategory);
+  categorySelect.id = "categoryFilter";
+  categorySelect.addEventListener("change", filterQuotes);
   document.body.insertBefore(
     categorySelect,
     document.getElementById("quoteDisplay")
   );
 
   updateCategoryDropdown();
+
+  // Restore last selected category from local storage
+  const lastSelectedCategory =
+    localStorage.getItem("lastSelectedCategory") || "all";
+  categorySelect.value = lastSelectedCategory;
 }
 
 // Load quotes from local storage
@@ -248,18 +256,18 @@ function initializeApp() {
   loadQuotes(); // Load existing quotes from local storage
   createAddQuoteForm();
   createCategoryDropdown();
-  showRandomQuote();
+  showRandomQuote(); // Show a random quote on app initialization
+
+  // Add event listener for exporting quotes
+  document
+    .getElementById("exportQuotesButton")
+    .addEventListener("click", exportQuotes);
+
+  // Add event listener for importing quotes
+  document
+    .getElementById("importQuotesFile")
+    .addEventListener("change", importFromJsonFile);
 }
 
-// Adding button for exporting quotes
-function createExportButton() {
-  const exportButton = document.createElement("button");
-  exportButton.textContent = "Export Quotes";
-  exportButton.onclick = exportQuotes;
-  document.getElementById("exportContainer").appendChild(exportButton);
-}
-
-// Call the functions to set everything up
-initializeApp();
-createExportButton();
-document.getElementById("newQuote").addEventListener("click", showRandomQuote);
+// Initialize the application when the DOM is ready
+document.addEventListener("DOMContentLoaded", initializeApp);
